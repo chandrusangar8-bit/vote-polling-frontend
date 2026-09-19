@@ -25,7 +25,7 @@ export default function App() {
   // Track voted polls locally
   const [votedPolls, setVotedPolls] = useState([]);
 
-  const API_URL = "http://10.131.237.135:8080";
+  const API_URL = "http://localhost:8000";
   const currentUser = localStorage.getItem("username") || "";
 
   useEffect(() => {

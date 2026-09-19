@@ -25,7 +25,7 @@ export default function App() {
   // Track voted polls locally
   const [votedPolls, setVotedPolls] = useState([]);
 
-  const API_URL = "http://10.131.237.135:8080";
+ const API_URL = "https://footwork-cadet-swipe.ngrok-free.dev";
   const currentUser = localStorage.getItem("username") || "";
 
   useEffect(() => {
@@ -46,7 +46,7 @@ export default function App() {
         const queryParams = new URLSearchParams(window.location.search);
         const sharedPollId = queryParams.get("pollId");
 
-        if (sharedPollId && !selectedPoll) {
+        if (sharedPollId) {
           const matchedPoll = pollsData.find(
             (p) => String(p._id || p.id) === String(sharedPollId)
           );
@@ -58,24 +58,26 @@ export default function App() {
           }
         }
 
-        // Live updating selectedPoll state dynamically
+        // Dynamically update selectedPoll state if active
         setSelectedPoll((prevSelected) => {
           if (!prevSelected) return null;
           const currentId = prevSelected._id || prevSelected.id;
-          const updated = pollsData.find((p) => String(p._id || p.id) === String(currentId));
+          const updated = pollsData.find(
+            (p) => String(p._id || p.id) === String(currentId)
+          );
           return updated ? { ...updated } : prevSelected;
         });
       }
     } catch (err) {
       console.error("Error fetching polls:", err);
     }
-  }, [API_URL, selectedPoll]);
+  }, [API_URL]);
 
   // Initial Fetch + Dynamic Realtime WebSocket Integration
   useEffect(() => {
     fetchPolls();
 
-    const socket = new WebSocket("ws://10.131.237.135:8080/ws");
+    const socket = new WebSocket("wss://footwork-cadet-swipe.ngrok-free.dev/ws");
 
     socket.onopen = () => {
       console.log("WebSocket Connection Established");
@@ -85,7 +87,6 @@ export default function App() {
       try {
         const data = JSON.parse(event.data);
         if (data.event === "VOTE_UPDATED" || data.poll) {
-          // Immediately trigger full polls refetch
           fetchPolls();
         }
       } catch (err) {
@@ -198,11 +199,11 @@ export default function App() {
     }
   };
 
-  // Strictly check if current logged-in user is owner
+  // Check if current logged-in user is owner
   const checkIsOwner = (poll) => {
     if (isPublicLinkView) return false;
     if (!currentUser || !poll) return false;
-    
+
     if (poll.owner) {
       return poll.owner === currentUser;
     }
@@ -259,7 +260,7 @@ export default function App() {
     }));
   };
 
-  // Vote Handler - Live update state instantly
+  // Vote Handler
   const handleVoteSubmit = async (pollId) => {
     if (votedPolls.includes(pollId)) {
       alert("You have already voted on this poll!");
@@ -286,8 +287,6 @@ export default function App() {
         const updatedVotedList = [...votedPolls, pollId];
         setVotedPolls(updatedVotedList);
         localStorage.setItem("voted_polls", JSON.stringify(updatedVotedList));
-        
-        // Immediate fetch to trigger UI re-render without reload
         fetchPolls();
       } else {
         alert(data.error || "Already voted!");
